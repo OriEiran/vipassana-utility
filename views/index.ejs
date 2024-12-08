@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equanimity</title>
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="description" content="Meditation Timer with Goenka's guidance">
+
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #34495e;
+            --text: #2c3e50;
+            --gradient-start: #ecf0f1;
+            --gradient-end: #e0e6e9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            min-height: -webkit-fill-available; /* Fix for iOS height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+        }
+
+        html {
+            height: -webkit-fill-available; /* Fix for iOS height */
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 60%);
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 2.8rem;
+            margin-bottom: 3rem;
+            color: var(--text);
+            opacity: 0.9;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            position: relative;
+            display: inline-block;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: var(--accent);
+            opacity: 0.3;
+        }
+
+        .circle-container {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 2rem auto;
+            filter: drop-shadow(0 6px 16px rgba(0,0,0,0.08));
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .circle-container.expanded {
+            width: 400px;
+            height: 400px;
+        }
+
+        .meditation-circle {
+            width: 100%;
+            height: 100%;
+            border: 8px solid var(--primary);
+            border-radius: 50%;
+            animation: breathe 8s infinite ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            backdrop-filter: blur(4px);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 35px 0 35px 56px;
+            border-color: transparent transparent transparent var(--primary);
+            animation: breathePlay 8s infinite ease-in-out;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+            z-index: 2;
+        }
+
+        .play-button.pause {
+            border-style: double;
+            border-width: 0px 0px 0px 56px;
+            height: 70px;
+        }
+
+        .progress-container {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .expanded .progress-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(44, 62, 80, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            width: 0%;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-top: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .skip-buttons {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .expanded .skip-buttons {
+            opacity: 0.8;
+            pointer-events: auto;
+        }
+
+        .skip-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: bold;
+            transition: opacity 0.3s ease;
+        }
+
+        .skip-button:hover {
+            opacity: 1;
+        }
+
+        @keyframes breathe {
+            0%, 100% { 
+                transform: scale(1); 
+                opacity: 0.8;
+            }
+            50% { 
+                transform: scale(1.1); 
+                opacity: 0.95;
+            }
+        }
+
+        @keyframes breathePlay {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.95;
+            }
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 2rem;
+            }
+            
+            .circle-container {
+                width: 160px;
+                height: 160px;
+            }
+
+            .circle-container.expanded {
+                width: 280px;
+                height: 280px;
+            }
+
+            .play-button {
+                border-width: 20px 0 20px 32px;
+            }
+
+            .play-button.pause {
+                border-width: 0px 0px 0px 32px;
+                height: 40px;
+            }
+
+            .skip-buttons {
+                gap: 60px;
+            }
+
+            .skip-button {
+                font-size: 1.5rem;
+            }
+
+            .time-display {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .circle-container {
+                width: 140px;
+                height: 140px;
+            }
+
+            .circle-container.expanded {
+                width: 240px;
+                height: 240px;
+            }
+
+            .skip-buttons {
+                gap: 40px;
+            }
+
+            .progress-container {
+                width: 80%;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container {
+                display: flex;
+                align-items: center;
+                justify-content: space-around;
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+
+            .circle-container {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>You are bound to be successful</h1>
+        <div class="circle-container" id="playPauseButton">
+            <div class="meditation-circle"></div>
+            <div class="play-button" id="playIcon"></div>
+            <div class="skip-buttons">
+                <button class="skip-button" id="skipBack">⟪</button>
+                <button class="skip-button" id="skipForward">⟫</button>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTime">0:00</span>
+                    <span id="duration">0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="meditationAudio" src="Goenka.mp3"></audio>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        const audio = document.getElementById('meditationAudio');
+        const playPauseButton = document.getElementById('playPauseButton');
+        const playIcon = document.getElementById('playIcon');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const durationDisplay = document.getElementById('duration');
+        const skipBack = document.getElementById('skipBack');
+        const skipForward = document.getElementById('skipForward');
+        let isPlaying = false;
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percent + '%';
+            currentTimeDisplay.textContent = formatTime(audio.currentTime);
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            durationDisplay.textContent = formatTime(audio.duration);
+        });
+
+        playPauseButton.addEventListener('click', () => {
+            if (isPlaying) {
+                audio.pause();
+            } else {
+                audio.play();
+            }
+            
+            isPlaying = !isPlaying;
+            playIcon.classList.toggle('pause');
+            playPauseButton.classList.toggle('expanded');
+        });
+
+        audio.addEventListener('ended', () => {
+            isPlaying = false;
+            playIcon.classList.remove('pause');
+            playPauseButton.classList.remove('expanded');
+            progress.style.width = '0%';
+        });
+
+        skipForward.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
+        });
+
+        skipBack.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audio.currentTime = Math.max(audio.currentTime - 10, 0);
+        });
+
+        progressBar.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        });
+    </script>
+</body>
+</html>
