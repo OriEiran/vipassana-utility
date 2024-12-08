@@ -2,18 +2,13 @@ const express = require('express')
 const path = require('path')
 const app = express()
 
-// Set up EJS
-app.set('view engine', 'ejs')
-
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')))
+// Serve static files from the root directory
+app.use(express.static(__dirname))
 
 app.get('/', (req, res) => {
-    res.render("index")
+    res.sendFile(path.join(__dirname, 'index.html'))
 })
 
-// Use environment port or default to 3000
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`)
+app.listen(3000, () => {
+    console.log('Server running on port 3000')
 })
