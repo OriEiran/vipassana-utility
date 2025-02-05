@@ -331,6 +331,8 @@
 <body>
     <div class="container">
         <h1>You are bound to be successful</h1>
+
+        <h3>30 Mins</h3>
         <div class="circle-container" id="playPauseButton">
             <div class="meditation-circle"></div>
             <div class="play-button" id="playIcon"></div>
@@ -348,9 +350,29 @@
                 </div>
             </div>
         </div>
+
+        <h3>45 Mins</h3>
+        <div class="circle-container" id="playPauseButton45">
+            <div class="meditation-circle"></div>
+            <div class="play-button" id="playIcon45"></div>
+            <div class="skip-buttons">
+                <button class="skip-button" id="skipBack45">⟪</button>
+                <button class="skip-button" id="skipForward45">⟫</button>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar45">
+                    <div class="progress" id="progress45"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTime45">0:00</span>
+                    <span id="duration45">0:00</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <audio id="meditationAudio" src="Goenka.mp3"></audio>
+    <audio id="meditationAudio45" src="Goenka45.mp3"></audio>
 
     <script>
         // Register Service Worker
@@ -366,16 +388,106 @@
             });
         }
 
-        const audio = document.getElementById('meditationAudio');
-        const playPauseButton = document.getElementById('playPauseButton');
-        const playIcon = document.getElementById('playIcon');
-        const progressBar = document.getElementById('progressBar');
-        const progress = document.getElementById('progress');
-        const currentTimeDisplay = document.getElementById('currentTime');
-        const durationDisplay = document.getElementById('duration');
-        const skipBack = document.getElementById('skipBack');
-        const skipForward = document.getElementById('skipForward');
-        let isPlaying = false;
+        const players = [
+    {
+        audio: document.getElementById('meditationAudio'),
+        playPauseButton: document.getElementById('playPauseButton'),
+        playIcon: document.getElementById('playIcon'),
+        progressBar: document.getElementById('progressBar'),
+        progress: document.getElementById('progress'),
+        currentTimeDisplay: document.getElementById('currentTime'),
+        durationDisplay: document.getElementById('duration'),
+        skipBack: document.getElementById('skipBack'),
+        skipForward: document.getElementById('skipForward'),
+        isPlaying: false
+    },
+    {
+        audio: document.getElementById('meditationAudio45'),
+        playPauseButton: document.getElementById('playPauseButton45'),
+        playIcon: document.getElementById('playIcon45'),
+        progressBar: document.getElementById('progressBar45'),
+        progress: document.getElementById('progress45'),
+        currentTimeDisplay: document.getElementById('currentTime45'),
+        durationDisplay: document.getElementById('duration45'),
+        skipBack: document.getElementById('skipBack45'),
+        skipForward: document.getElementById('skipForward45'),
+        isPlaying: false
+    }
+];
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    seconds = Math.floor(seconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function pauseAllOtherPlayers(currentPlayer) {
+    players.forEach(player => {
+        if (player !== currentPlayer && player.isPlaying) {
+            player.audio.pause();
+            player.isPlaying = false;
+            player.playIcon.classList.remove('pause');
+            player.playPauseButton.classList.remove('expanded');
+        }
+    });
+}
+
+players.forEach(player => {
+    // Time update event
+    player.audio.addEventListener('timeupdate', () => {
+        const percent = (player.audio.currentTime / player.audio.duration) * 100;
+        player.progress.style.width = percent + '%';
+        player.currentTimeDisplay.textContent = formatTime(player.audio.currentTime);
+    });
+
+    // Loaded metadata event
+    player.audio.addEventListener('loadedmetadata', () => {
+        player.durationDisplay.textContent = formatTime(player.audio.duration);
+    });
+
+    // Play/Pause button click
+    player.playPauseButton.addEventListener('click', () => {
+        pauseAllOtherPlayers(player);
+        
+        if (player.isPlaying) {
+            player.audio.pause();
+        } else {
+            player.audio.play();
+        }
+        
+        player.isPlaying = !player.isPlaying;
+        player.playIcon.classList.toggle('pause');
+        player.playPauseButton.classList.toggle('expanded');
+    });
+
+    // Audio ended event
+    player.audio.addEventListener('ended', () => {
+        player.isPlaying = false;
+        player.playIcon.classList.remove('pause');
+        player.playPauseButton.classList.remove('expanded');
+        player.progress.style.width = '0%';
+    });
+
+    // Skip forward button
+    player.skipForward.addEventListener('click', (e) => {
+        e.stopPropagation();
+        player.audio.currentTime = Math.min(player.audio.currentTime + 10, player.audio.duration);
+    });
+
+    // Skip back button
+    player.skipBack.addEventListener('click', (e) => {
+        e.stopPropagation();
+        player.audio.currentTime = Math.max(player.audio.currentTime - 10, 0);
+    });
+
+    // Progress bar click
+    player.progressBar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = player.progressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        player.audio.currentTime = percent * player.audio.duration;
+    });
+});
 
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -427,6 +539,52 @@
             const rect = progressBar.getBoundingClientRect();
             const percent = (e.clientX - rect.left) / rect.width;
             audio.currentTime = percent * audio.duration;
+        });
+
+        audio45.addEventListener('timeupdate', () => {
+            const percent = (audio45.currentTime / audio45.duration) * 100;
+            progress45.style.width = percent + '%';
+            currentTimeDisplay45.textContent = formatTime(audio45.currentTime);
+        });
+
+        audio45.addEventListener('loadedmetadata', () => {
+            durationDisplay45.textContent = formatTime(audio45.duration);
+        });
+
+        playPauseButton45.addEventListener('click', () => {
+            if (isPlaying45) {
+                audio45.pause();
+            } else {
+                audio45.play();
+            }
+            
+            isPlaying45 = !isPlaying45;
+            playIcon45.classList.toggle('pause');
+            playPauseButton45.classList.toggle('expanded');
+        });
+
+        audio45.addEventListener('ended', () => {
+            isPlaying45 = false;
+            playIcon45.classList.remove('pause');
+            playPauseButton45.classList.remove('expanded');
+            progress45.style.width = '0%';
+        });
+
+        skipForward45.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audio45.currentTime = Math.min(audio45.currentTime + 10, audio45.duration);
+        });
+
+        skipBack45.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audio45.currentTime = Math.max(audio45.currentTime - 10, 0);
+        });
+
+        progressBar45.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = progressBar45.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio45.currentTime = percent * audio45.duration;
         });
     </script>
 </body>
