@@ -3,7 +3,7 @@ const assetsToCache = [
   '/',
   '/index.ejs',
   '/Goenka.mp3',
-  '/Goenka45mp3',
+  '/Goenka45.mp3',
   '/manifest.json',
   // Add other assets
 ];
